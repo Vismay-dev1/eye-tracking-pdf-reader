@@ -1,92 +1,136 @@
-import React, { useState, useCallback } from 'react'
-import EyeTracker from './components/EyeTracker'
-import PDFViewer from './components/PDFViewer'
+import { useCallback, useMemo, useState } from 'react'
+import Home from './components/Home'
 import Calibration from './components/Calibration'
-import SettingsPanel from './components/SettingsPanel'
+import PDFReader from './components/PDFReader'
+import { useEyeTracking } from './hooks/useEyeTracking'
+import {
+  loadCalibration,
+  loadSettings,
+  saveCalibration,
+  saveSettings,
+} from './lib/storage'
+import type {
+  CalibrationModel,
+  InputMode,
+  LoadedDocument,
+  ReaderSettings,
+} from './types'
 
-export interface GazePoint {
-  x: number
-  y: number
-}
-
-export interface CalibrationData {
-  [key: string]: { x: number; y: number }[]
+function makeHeuristicCalibration(): CalibrationModel {
+  const w = window.innerWidth
+  const h = window.innerHeight
+  return {
+    kind: 'linear-fallback',
+    coefX: [w / 2, w / 0.32, 0, 0, 0, 0],
+    coefY: [h / 2, 0, h / 0.18, 0, 0, 0],
+    fitError: NaN,
+    createdAt: Date.now(),
+  }
 }
 
 function App() {
-  const [isCalibrated, setIsCalibrated] = useState(false)
-  const [calibrationData, setCalibrationData] = useState<CalibrationData>({})
-  const [gazePoint, setGazePoint] = useState<GazePoint | null>(null)
-  const [isEyeTrackingEnabled, setIsEyeTrackingEnabled] = useState(true)
-  const [isAutoscrollEnabled, setIsAutoscrollEnabled] = useState(true)
-  const [scrollSensitivity, setScrollSensitivity] = useState(1)
-  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [doc, setDoc] = useState<LoadedDocument | null>(null)
+  const [mode, setMode] = useState<InputMode>('camera')
+  const [calibration, setCalibration] = useState<CalibrationModel | null>(() =>
+    loadCalibration(),
+  )
+  const [calibrating, setCalibrating] = useState(false)
+  const [settings, setSettings] = useState<ReaderSettings>(() => loadSettings())
 
-  const handleCalibrationComplete = useCallback((data: CalibrationData) => {
-    setCalibrationData(data)
-    setIsCalibrated(true)
-    localStorage.setItem('eyeTrackingCalibration', JSON.stringify(data))
+  // The camera is needed while reading and while calibrating.
+  const trackingEnabled =
+    mode === 'camera' ? doc !== null || calibrating : doc !== null
+  const tracker = useEyeTracking(trackingEnabled, mode, calibration)
+
+  const patchSettings = useCallback((patch: Partial<ReaderSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch }
+      saveSettings(next)
+      return next
+    })
   }, [])
 
-  const handleRecalibrate = useCallback(() => {
-    setIsCalibrated(false)
-    setCalibrationData({})
-    localStorage.removeItem('eyeTrackingCalibration')
-  }, [])
-
-  const handlePdfUpload = useCallback((file: File) => {
-    setPdfFile(file)
-  }, [])
-
-  React.useEffect(() => {
-    const savedCalibration = localStorage.getItem('eyeTrackingCalibration')
-    if (savedCalibration) {
-      try {
-        const data = JSON.parse(savedCalibration)
-        setCalibrationData(data)
-        setIsCalibrated(true)
-      } catch (e) {
-        console.error('Failed to load calibration data:', e)
+  const handleDocument = useCallback(
+    (loaded: LoadedDocument, chosenMode: InputMode) => {
+      setMode(chosenMode)
+      setDoc(loaded)
+      if (chosenMode === 'camera' && !calibration) {
+        setCalibrating(true)
       }
+    },
+    [calibration],
+  )
+
+  const handleCalibrationComplete = useCallback((model: CalibrationModel) => {
+    setCalibration(model)
+    saveCalibration(model)
+    setCalibrating(false)
+  }, [])
+
+  const handleCalibrationSkip = useCallback(() => {
+    setCalibrating(false)
+    setCalibration((prev) => prev ?? makeHeuristicCalibration())
+  }, [])
+
+  const handleCalibrationCancel = useCallback(() => {
+    setCalibrating(false)
+    setCalibration((prev) => prev ?? makeHeuristicCalibration())
+  }, [])
+
+  const handleSwitchMode = useCallback((m: InputMode) => {
+    setMode(m)
+    if (m === 'camera') {
+      setCalibration((prev) => {
+        if (prev) return prev
+        setCalibrating(true)
+        return prev
+      })
     }
   }, [])
 
-  return (
-    <div className="w-full h-screen flex bg-gray-50">
-      <div className="flex-1 flex flex-col">
-        {!isCalibrated ? (
-          <Calibration onCalibrationComplete={handleCalibrationComplete} />
-        ) : (
-          <>
-            <PDFViewer
-              pdfFile={pdfFile}
-              onPdfUpload={handlePdfUpload}
-              gazePoint={gazePoint}
-              isAutoscrollEnabled={isAutoscrollEnabled}
-              scrollSensitivity={scrollSensitivity}
-              calibrationData={calibrationData}
-            />
-            {isEyeTrackingEnabled && (
-              <EyeTracker
-                isEnabled={isEyeTrackingEnabled}
-                calibrationData={calibrationData}
-                onGazePointUpdate={setGazePoint}
-              />
-            )}
-          </>
-        )}
-      </div>
+  const handleExit = useCallback(() => {
+    setDoc(null)
+  }, [])
 
-      {isCalibrated && (
-        <SettingsPanel
-          isEyeTrackingEnabled={isEyeTrackingEnabled}
-          isAutoscrollEnabled={isAutoscrollEnabled}
-          scrollSensitivity={scrollSensitivity}
-          onEyeTrackingToggle={setIsEyeTrackingEnabled}
-          onAutoscrollToggle={setIsAutoscrollEnabled}
-          onScrollSensitivityChange={setScrollSensitivity}
-          onRecalibrate={handleRecalibrate}
-          gazePoint={gazePoint}
+  const showCalibration = calibrating && mode === 'camera'
+
+  const reader = useMemo(() => {
+    if (!doc) return null
+    return (
+      <PDFReader
+        doc={doc}
+        tracker={tracker}
+        mode={mode}
+        settings={settings}
+        onSettingsChange={patchSettings}
+        onRecalibrate={() => setCalibrating(true)}
+        onSwitchMode={handleSwitchMode}
+        onExit={handleExit}
+      />
+    )
+  }, [
+    doc,
+    tracker,
+    mode,
+    settings,
+    patchSettings,
+    handleSwitchMode,
+    handleExit,
+  ])
+
+  return (
+    <div className="h-full w-full overflow-hidden bg-[#0b0f1a] text-slate-100">
+      {doc ? (
+        reader
+      ) : (
+        <Home onDocument={handleDocument} hasCalibration={calibration !== null} />
+      )}
+      {showCalibration && (
+        <Calibration
+          stream={tracker.stream}
+          onComplete={handleCalibrationComplete}
+          onSkip={handleCalibrationSkip}
+          onCancel={handleCalibrationCancel}
         />
       )}
     </div>
