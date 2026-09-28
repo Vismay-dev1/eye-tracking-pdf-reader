@@ -2,22 +2,126 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
-    'Helvetica Neue', sans-serif;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  background: #0b0f1a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* ---------- scrollbars ---------- */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgb(148 163 184 / 0.25);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(148 163 184 / 0.45);
+  background-clip: padding-box;
 }
 
-#root {
-  width: 100%;
-  height: 100vh;
+::selection {
+  background: rgb(99 102 241 / 0.35);
+}
+
+/* =====================================================================
+   pdf.js text layer — minimal required styles (adapted from pdf_viewer.css)
+   ===================================================================== */
+.textLayer {
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  -webkit-text-size-adjust: none;
+  -moz-text-size-adjust: none;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 0;
+}
+
+.textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+}
+
+.textLayer span.markedContent {
+  top: 0;
+  height: 0;
+}
+
+.textLayer ::selection {
+  background: rgb(0 90 200 / 0.35);
+  color: transparent;
+}
+
+/* word under the user's gaze */
+.textLayer span.gaze-word {
+  background: rgb(251 191 36 / 0.35);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgb(251 191 36 / 0.25);
+  transition: background 120ms ease;
+}
+
+/* ---------- calibration dot pulse ---------- */
+@keyframes calPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 24px rgba(34, 211, 238, 0.9);
+  }
+  50% {
+    transform: scale(1.25);
+    box-shadow: 0 0 36px rgba(34, 211, 238, 1);
+  }
+}
+.cal-dot-active {
+  animation: calPulse 1.2s ease-in-out infinite;
+}
+
+/* ---------- slider polish ---------- */
+input[type='range'] {
+  cursor: pointer;
+}
+
+kbd {
+  font-family: inherit;
+}
+
+/* crisp rendering for the page canvas */
+.page-wrap canvas {
+  display: block;
 }

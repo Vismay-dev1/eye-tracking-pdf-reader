@@ -1,29 +1,34 @@
 {
   "name": "eye-tracking-pdf-reader",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
+  "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "eslint src"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "pdfjs-dist": "^4.0.379",
-    "@tensorflow/tfjs": "^4.11.0",
-    "@tensorflow-models/face-api": "^0.0.7",
-    "lucide-react": "^0.294.0"
+    "@tensorflow-models/face-landmarks-detection": "^1.0.6",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-webgl": "^4.22.0",
+    "@tensorflow/tfjs-converter": "^4.22.0",
+    "@tensorflow/tfjs-core": "^4.22.0",
+    "lucide-react": "^0.294.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@types/react": "^18.2.37",
-    "@types/react-dom": "^18.2.15",
-    "@vitejs/plugin-react": "^4.2.0",
-    "vite": "^5.0.2",
-    "tailwindcss": "^3.3.5",
-    "postcss": "^8.4.31",
-    "autoprefixer": "^10.4.16",
-    "@types/pdfjs-dist": "^2.10.378"
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
   }
 }
