@@ -1,5 +1,7 @@
 # 👁️ Oculis — Eye-Tracking PDF Reader
 
+ https://vismay-dev1.github.io/eye-tracking-pdf-reader/
+
 A hands-free PDF reader that runs entirely in your browser. Upload any PDF, calibrate
 your gaze once (~20 seconds), and the document **scrolls itself as you read**. A soft
 highlight follows the exact word you're looking at — touch nothing.
